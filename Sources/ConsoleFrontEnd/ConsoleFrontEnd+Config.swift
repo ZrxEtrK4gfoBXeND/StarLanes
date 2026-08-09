@@ -137,17 +137,18 @@ extension ConsoleFrontEnd: FrontEndConfig {
 
             while playersToInput > 0 {
                 output.write("ENTER PLAYER #\(playerDefs.count+1) (\(type)) NAME: ", terminator: "")
-                if let name = readLine() {
-                    if name.count > maxPlayerNameLength {
-                       output.write()
-                       output.write("ERROR: MAXIMUM PLAYER NAME LENGTH IS \(maxPlayerNameLength) CHARACTERS.", terminator: "\n\n")
-                    } else if (playerDefs.map { $0.name }.contains(name)) {
-                       output.write()
-                       output.write("ERROR: PLAYER NAME ALREADY USED.", terminator: "\n\n")
-                    } else if !name.isEmpty {
-                       playerDefs.append(VmoPlayerDef(name: name, isComputer: isComputer))
-                       playersToInput -= 1
-                    }
+                guard let name = readLine() else {
+                    exitOnEndOfInput()
+                }
+                if name.count > maxPlayerNameLength {
+                   output.write()
+                   output.write("ERROR: MAXIMUM PLAYER NAME LENGTH IS \(maxPlayerNameLength) CHARACTERS.", terminator: "\n\n")
+                } else if (playerDefs.map { $0.name }.contains(name)) {
+                   output.write()
+                   output.write("ERROR: PLAYER NAME ALREADY USED.", terminator: "\n\n")
+                } else if !name.isEmpty {
+                   playerDefs.append(VmoPlayerDef(name: name, isComputer: isComputer))
+                   playersToInput -= 1
                 }
             }
         }
