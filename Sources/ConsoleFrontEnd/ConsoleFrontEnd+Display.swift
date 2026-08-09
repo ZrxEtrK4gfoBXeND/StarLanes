@@ -102,7 +102,7 @@ extension ConsoleFrontEnd: FrontEndDisplay {
 
         // Display row headers and map grid
         (0 ..< vmoGalaxyMap.rowCount).forEach { row in
-            let line = (0 ..< vmoGalaxyMap.columnCount).reduce(SPACER + "\(row+1)") { $0 + SPACER + vmoGalaxyMap.map[$1][row] }
+            let line = (0 ..< vmoGalaxyMap.columnCount).reduce(SPACER + "\(row+1)") { $0 + SPACER + Ansi.galaxyMapCell(vmoGalaxyMap.map[$1][row]) }
             output.write(line, terminator: "\n\n")
         }
 
