@@ -20,6 +20,8 @@ public class MagisterLudi {
     private var series: Series!
     /// Current game information container (persistable)
     private var game: Game!
+    /// Move-by-move record of the current game (persistable, separate from the session).
+    private var gameLog: GameLog!
 
     /// Basic initializer
     /// - parameter frontEnd: Front end implementation
@@ -72,6 +74,18 @@ public class MagisterLudi {
 
                     if state != .configureSeries {
                         playerAgents = series.playerDefs.map { PlayerAgent(name: $0.name, input: $0.isComputer  ? ComputerInput() : frontEnd.input) }
+                        // Continue the existing log when it belongs to this same unfinished game,
+                        // so resuming does not discard the turns already recorded.
+                        frontEnd.retrieveGameLog { logData in
+                            if  let logData = logData,
+                                let persistedLog = GameLog(data: logData),
+                                persistedLog.endOfGameDescription == nil,
+                                persistedLog.playerNames == series.playerDefs.map({ $0.name }) {
+                                gameLog = persistedLog
+                            } else {
+                                gameLog = GameLog(version: starlanesVersion, series: series)
+                            }
+                        }
                     }
                 } else {
                     state = .configureSeries
@@ -117,6 +131,7 @@ public class MagisterLudi {
                 let companiesDeclaredSafe = Array(repeating: false, count: series.gameConfig.shippingCompanyCount)
                 game = Game(model: gameModel, laggardMonitor: laggardMonitor, companiesDeclaredSafe: companiesDeclaredSafe, playerIndex: 0, playerOrder: playerOrder)
                 playerAgents.resetAnnouncements()
+                gameLog = GameLog(version: starlanesVersion, series: series)
                 state = .startRound
             }
 
@@ -126,6 +141,7 @@ public class MagisterLudi {
 
         case .startTurn:
             game.model.select(playerIndex: game.currentPlayerIndex)
+            gameLog.beginTurn(playerName: series.playerDefs[game.currentPlayerIndex].name)
             frontEnd.display(turnStart: series.playerDefs[game.currentPlayerIndex])
             state = .checkEarlyGameEnd
 
@@ -165,12 +181,19 @@ public class MagisterLudi {
 
                 state = .awaitingInput
                 frontEnd.inputCoordinate(input: input, playerDef: series.playerDefs[game.currentPlayerIndex], coordinateOptions: coordinateOptions) { coordinate in
+                    var loggedEvents = [String]()
                     for playedCoordinateResult in game.model.play(coordinate: coordinate) {
                         switch playedCoordinateResult {
+                        case .newOutpost:
+                            loggedEvents.append("NEW OUTPOST")
+                        case let .companyExpanded(company):
+                            loggedEvents.append("EXPANDED \(VmoCompany(company: company).name)")
                         case let .newCompany(company):
+                            loggedEvents.append("FOUNDED \(VmoCompany(company: company).name)")
                             playerAgents.announce(.newCompany(VmoCompany(company: company), founder:series.playerDefs[game.currentPlayerIndex].name))
                         case let .companiesMerged(mergeReports):
                             for mergeReport in mergeReports {
+                                loggedEvents.append("MERGED \(VmoCompany(company: mergeReport.defunctCompany).name) INTO \(VmoCompany(company: mergeReport.survivingCompany).name)")
                                 for index in series.playerDefs.indices {
                                     playerAgents[index].announce(.merger(
                                                                      byPlayer: series.playerDefs[mergeReport.mergePlayerIndex].name,
@@ -183,18 +206,21 @@ public class MagisterLudi {
                             }
                         case let .companiesDestroyed(companyIDs):
                             for companyID in companyIDs {
+                                loggedEvents.append("BLACK HOLE DESTROYED \(VmoCompany(company: Company(index: companyID)).name)")
                                 playerAgents.announce(.destroyedCompany(VmoCompany(company: Company(index: companyID))))
                             }
-                        default: break
                         }
                     }
 
                     for company in game.model.activeCompanies {
                         if company.isSafe && !game.companiesDeclaredSafe[company.index] {
+                            loggedEvents.append("\(VmoCompany(company: company).name) IS NOW SAFE")
                             playerAgents.announce(.safeCompany(VmoCompany(company: company)))
                             game.companiesDeclaredSafe[company.index] = true
                         }
                     }
+
+                    gameLog.recordMove(coordinate: "\(coordinate)", events: loggedEvents)
 
                     frontEnd.display(galaxyMap: VmoGalaxyMap(galaxyMap: game.model.galaxyMap))
                     frontEnd.display(announcements: playerAgents[game.currentPlayerIndex].publishAnnouncements())
@@ -207,7 +233,9 @@ public class MagisterLudi {
             }
 
         case .calculateDividends:
-            playerAgents[game.currentPlayerIndex].announce(.dividends(game.model.calculateDividends()))
+            let dividends = game.model.calculateDividends()
+            gameLog.recordDividends(dividends)
+            playerAgents[game.currentPlayerIndex].announce(.dividends(dividends))
             state = .purchaseShares
 
         case .purchaseShares:
@@ -217,16 +245,28 @@ public class MagisterLudi {
             }
             let vmoActiveCompanies = game.model.activeCompanies.map { VmoCompany(company: $0) }
             frontEnd.display(announcements: playerAgents[game.currentPlayerIndex].publishAnnouncements())
-            frontEnd.display(activeCompanies: vmoActiveCompanies)
+            frontEnd.display(activeCompanies: vmoActiveCompanies, endGameTokenCount: series.gameConfig.endGameTokenCount)
             state = .awaitingInput
             frontEnd.inputPurchaseOrder(input: input, activeCompanies: vmoActiveCompanies, availableCash: game.model.players[game.currentPlayerIndex].cash) { purchaseOrder in
                 game.model.purchaseShares(purchaseOrder: purchaseOrder)
+                gameLog.recordPurchases(
+                    zip(vmoActiveCompanies.indices, purchaseOrder)
+                        .filter { $0.1 > 0 }
+                        .map { "\($0.1) x \(vmoActiveCompanies[$0.0].name)" }
+                )
                 state = .endTurn
             }
 
         case .endTurn:
             game.playerIndex += 1
             state = game.playerIndex == series.playerDefs.count ? .endRound : .startTurn
+
+            // Snapshot after the player index advances, so restoring this entry resumes with the
+            // next player to act, matching the state the session file is saved in below.
+            gameLog.endTurn(game: game)
+            if let logData = gameLog.data {
+                frontEnd.persistGameLog(data: logData)
+            }
 
             let persistedSessionContainer = PersistedSessionContainer(version: starlanesVersion, series: series, game: game)
             if let data = persistedSessionContainer.data {
@@ -240,6 +280,23 @@ public class MagisterLudi {
         case let .endGame(reason):
             let vmoPlayerRanking = VmoPlayerRanking(game: game, series: series)
             frontEnd.display(endOfGameReason: reason, vmoPlayerRanking: vmoPlayerRanking)
+
+            let endOfGameDescription: String
+            switch reason {
+            case let .playerCalledGame(name):
+                endOfGameDescription = "\(name) CALLED THE GAME"
+            case let .playerConcededGame(name):
+                endOfGameDescription = "\(name) CONCEDED THE GAME"
+            case .noMorePlayableCoordinates:
+                endOfGameDescription = "NO MORE PLAYABLE COORDINATES"
+            }
+            gameLog.finish(
+                description: endOfGameDescription,
+                ranking: vmoPlayerRanking.rankedPlayers.map { GameLogRanking(name: $0.name, netWorth: $0.netWorth) }
+            )
+            if let logData = gameLog.data {
+                frontEnd.persistGameLog(data: logData)
+            }
 
             series.leaderboard.gameEnded(winningPlayerName: vmoPlayerRanking.rankedPlayers.first!.name)
             frontEnd.display(leaderboard: series.leaderboard.vmoLeaderboardEntries)

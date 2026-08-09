@@ -78,6 +78,15 @@ extension ConsoleFrontEnd: FrontEndDisplay {
             }
             output.write()
         }
+
+        // Print company sizes as progress toward the token count that allows the game to be called.
+        if !vmoPlayerRanking.activeCompanies.isEmpty {
+            output.write(String("SIZE / \(vmoPlayerRanking.endGameTokenCount)", pad: 30), terminator: "")
+            for company in vmoPlayerRanking.activeCompanies {
+                output.write(String("\(company.size)/\(vmoPlayerRanking.endGameTokenCount)", pad: 8), terminator: "")
+            }
+            output.write()
+        }
         output.write()
 
         // Print footer
@@ -112,12 +121,18 @@ extension ConsoleFrontEnd: FrontEndDisplay {
 
     /// Displays a list of the active companies, with company name, share price and coordinate count for each.
     /// - parameter activeCompanies: An alphabetized array of active company view models.
-    func display(activeCompanies vmoCompanies: [VmoCompany]) {
+    func display(activeCompanies vmoCompanies: [VmoCompany], endGameTokenCount: Int) {
+        /// Draws a fixed-width meter showing how close a company is to the game-ending token count.
+        func progressBar(size: Int, width: Int) -> String {
+            let filled = endGameTokenCount > 0 ? Swift.min(size * width / endGameTokenCount, width) : 0
+            return "[" + String(repeating: "=", count: filled) + String(repeating: "-", count: width - filled) + "]"
+        }
+
         if !vmoCompanies.isEmpty {
-            output.write("COMPANY             PRICE/SHARE  SIZE")
-            output.write("------------------- -----------  ----")
+            output.write("COMPANY             PRICE/SHARE  SIZE      PROGRESS TO END GAME")
+            output.write("------------------- -----------  --------  --------------------")
             for company in vmoCompanies {
-                output.write("\(String(company.name, pad: 20))\(String(String(money: company.shareValue), pad: 14))\(String("\(company.size)", pad: 8))")
+                output.write("\(String(company.name, pad: 20))\(String(String(money: company.shareValue), pad: 14))\(String("\(company.size)/\(endGameTokenCount)", pad: 10))\(progressBar(size: company.size, width: 20))")
             }
             output.write()
         }

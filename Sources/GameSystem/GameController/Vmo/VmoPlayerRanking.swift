@@ -11,6 +11,9 @@ public struct VmoPlayerRanking {
     public let activeCompanies: [VmoCompany]
     /// Players ranked by net worth.
     public let rankedPlayers: [VmoPlayer]
+    /// Token count a company must reach before the game can be called.
+    /// Presented alongside company size so players can see how close the game is to ending.
+    public let endGameTokenCount: Int
 }
 
 extension VmoPlayerRanking {
@@ -18,6 +21,7 @@ extension VmoPlayerRanking {
     /// - parameter game: Game model information.
     /// - parameter series: Series model information.
     init (game: Game, series: Series) {
+        endGameTokenCount = series.gameConfig.endGameTokenCount
         activeCompanies =  game.model.activeCompanies.map { VmoCompany(company: $0) }
         rankedPlayers   =  zip(game.model.players, game.model.netWorths)
                               .sorted { $0.1 > $1.1 }

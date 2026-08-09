@@ -39,6 +39,18 @@ public protocol FrontEndPersist {
     /// Delegation to store a game/series.
     /// - parameter data: Blob of data containing the game/series.
     func persistSession(data: Data)
+
+    /// Delegation to store the log of the game being played.
+    /// This is separate from the session so that reviewing the last game does not
+    /// disturb the saved session, and so a finished game still has a readable record.
+    /// - parameter data: Blob of data containing the game log.
+    func persistGameLog(data: Data)
+
+    /// Delegation to retrieve the log of the last game played.
+    /// Resuming a saved game continues its existing log rather than starting a new one,
+    /// so the turns played before the session was saved are not lost.
+    /// - parameter completionHandler: The delegate calls this with the blob of data used to persist the log.
+    func retrieveGameLog(completionHandler: (Data?) -> Void)
 }
 
 /// Front end delegates to acquire input responses from players. Each has a completion handler that returns control to Magister Ludi.
@@ -108,7 +120,9 @@ public protocol FrontEndDisplay {
     /// Delegation to present list of active companies.
     /// Company name, price per share and token count are displayed for each.
     /// - parameter activeCompanies: Alphabetical array of company view models.
-    func display(activeCompanies vmoCompanies: [VmoCompany])
+    /// - parameter endGameTokenCount: Token count a company must reach before the game can be called, so
+    ///   company size can be presented as progress toward ending the game.
+    func display(activeCompanies vmoCompanies: [VmoCompany], endGameTokenCount: Int)
 
     /// Delegation to present contents of fatal error.
     /// Note: this only presents a message, it does not terminate the process.

@@ -17,6 +17,14 @@ THE CLASSIC GAME OF INTERSTELLAR TRADING IS BACK...
 ## How To Play
 When you run Star Lanes, you'll be offered instructions. If you're new to the game, please read these instructions to familiarize yourself with the game play.
 
+#### Reviewing and Rewinding a Game
+Every turn of the game in progress is recorded to `~/.starlanes-log`, separately from the saved game.
+```sh
+starlanes --history      # review the last game: moves, mergers, dividends and net worth per turn
+starlanes --rewind 20    # restore the state saved at turn 20, then run starlanes and resume
+```
+Rewinding replaces your saved game and drops the turns after the one you picked, since play from that point replaces them. You're asked to confirm first.
+
 #### Game Strategy and Tips
 - When companies merge, shares in the defunct company are converted into the surviving company at 2:1. If the defunct company share price is less than half the surviving company share price... PROFIT!
 - The trick is to profit from merges: buy low, merge high. **Merge Order** becomes critical as well as **Merge Timing**, where you can maximally leverage your profits from the previous merge.
