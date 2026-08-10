@@ -123,6 +123,15 @@ extension GameLog {
         entries[entries.count - 1].snapshot = game
     }
 
+    /// Drops a turn that was opened but never played out.
+    /// This happens when a player ends the game instead of taking their turn, by calling it or
+    /// conceding, which leaves an entry with no move, no standings and nothing to rewind to.
+    mutating func discardIncompleteTurn() {
+        if let lastEntry = entries.last, lastEntry.snapshot == nil {
+            entries.removeLast()
+        }
+    }
+
     /// Records why the game ended and the final standings.
     /// - parameter description: Reason the game ended.
     /// - parameter ranking: Final standings, highest net worth first.

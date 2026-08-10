@@ -43,8 +43,9 @@ extension Token: LosslessStringConvertible {
             return String(UnicodeScalar(letterA + UInt8(companyID)))
 
         case let .marker(marker):
+            // Markers are numbered from 1, matching the selection numbers offered to the player.
             let number1 = UInt8(49)
-            return String(UnicodeScalar(number1 + UInt8(marker)))
+            return String(UnicodeScalar(number1 + UInt8(marker) - 1))
         }
     }
 
@@ -65,7 +66,7 @@ extension Token: LosslessStringConvertible {
             let numbers = (number1 ..< number1 + UInt8(9)).map { $0 }
             let letters = (letterA ..< letterA + UInt8(25)).map { $0 }
             if numbers.contains(uint8Value) {
-                self = .marker(Int(uint8Value - number1))
+                self = .marker(Int(uint8Value - number1) + 1)
             } else if letters.contains(uint8Value) {
                 self = .company(Int(uint8Value - letterA))
             } else {

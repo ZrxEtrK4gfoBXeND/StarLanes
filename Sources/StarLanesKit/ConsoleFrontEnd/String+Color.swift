@@ -64,6 +64,15 @@ enum Ansi {
         return companyColors[Int(value - UInt8(65)) % companyColors.count]
     }
 
+    /// Colors text in a company's color, matching that company's tokens on the galaxy map.
+    /// - parameter text: Text to color, typically a company name or monogram.
+    /// - parameter monogram: Company monogram, "A" for the first company.
+    /// - returns: The colored text, or the text unchanged when color is disabled.
+    static func companyText(_ text: String, monogram: String) -> String {
+        let code = companyColor(monogram: monogram)
+        return code.isEmpty ? text : text.ansi(code)
+    }
+
     /// Lays out a table cell of fixed visible width, then colors it.
     /// Padding is measured on the plain text and appended outside the escape sequences,
     /// so styling can never disturb column alignment.
@@ -75,6 +84,28 @@ enum Ansi {
         let visible = String(text.prefix(pad))
         let styled = code.isEmpty ? visible : visible.ansi(code)
         return styled + String(repeating: " ", count: pad - visible.count)
+    }
+
+    /// Removes every escape sequence from a string, leaving what the terminal actually shows.
+    /// Column widths are defined in terms of this, so tests and layout agree on what "width" means.
+    /// - parameter text: Text that may contain escape sequences.
+    /// - returns: The text with escape sequences removed.
+    static func visibleText(_ text: String) -> String {
+        var result = ""
+        var insideEscapeSequence = false
+        for character in text {
+            if character == "\u{001B}" {
+                insideEscapeSequence = true
+            } else if insideEscapeSequence {
+                // Escape sequences used here are of the form ESC [ ... m
+                if character == "m" {
+                    insideEscapeSequence = false
+                }
+            } else {
+                result.append(character)
+            }
+        }
+        return result
     }
 
     /// Applies color and style to a single galaxy map cell.

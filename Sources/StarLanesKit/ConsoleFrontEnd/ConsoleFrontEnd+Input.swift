@@ -86,8 +86,9 @@ extension ConsoleFrontEnd: FrontEndInput {
         var result = Array(repeating: 0, count: activeCompanies.count)
         for index in activeCompanies.indices where cash >= activeCompanies[index].shareValue {
             let maxAmount = cash / activeCompanies[index].shareValue
+            let companyName = Ansi.companyText(activeCompanies[index].name, monogram: activeCompanies[index].monogram)
             output.write("YOUR CURRENT CASH = \(String(money: cash))")
-            output.write("BUY HOW MANY SHARES OF \(activeCompanies[index].name) AT \(String(money: activeCompanies[index].shareValue)) (UP TO \(maxAmount))")
+            output.write("BUY HOW MANY SHARES OF \(companyName) AT \(String(money: activeCompanies[index].shareValue)) (UP TO \(maxAmount))")
             result[index] = input.readInt(output: output, min: 0, max: maxAmount, defaultValue: nil)
             output.write()
             cash -= result[index] * activeCompanies[index].shareValue

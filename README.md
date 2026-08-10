@@ -64,3 +64,10 @@ $ cd [to folder containing Package.swift]
 $ swift package generate-xcodeproj
 $ swift run
 ```
+
+#### Running the Tests
+The game engine and console front end live in the `StarLanesKit` library, so they can be exercised without a keyboard. The executable is a single line that calls into it.
+```sh
+$ swift test
+```
+Whole games are played in the suite with a fixed map and turn order, using the `fixedCoordinateStack` and `fixedPlayerOrder` hooks, so a game is repeatable and its outcome can be asserted. The tests keep their saved games in memory and never touch `~/.starlanes`.

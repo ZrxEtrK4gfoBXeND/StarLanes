@@ -290,6 +290,9 @@ public class MagisterLudi {
             case .noMorePlayableCoordinates:
                 endOfGameDescription = "NO MORE PLAYABLE COORDINATES"
             }
+            // A player who ends the game does so instead of taking their turn, so the turn they
+            // opened has nothing in it.
+            gameLog.discardIncompleteTurn()
             gameLog.finish(
                 description: endOfGameDescription,
                 ranking: vmoPlayerRanking.rankedPlayers.map { GameLogRanking(name: $0.name, netWorth: $0.netWorth) }
