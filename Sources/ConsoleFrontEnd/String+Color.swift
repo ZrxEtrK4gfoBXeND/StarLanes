@@ -53,6 +53,30 @@ enum Ansi {
         return isatty(1) == 1
     }()
 
+    /// The color a company's tokens are drawn in on the galaxy map.
+    /// Tables use this so a company reads as the same color everywhere it appears.
+    /// - parameter monogram: Company monogram, "A" for the first company.
+    /// - returns: Escape sequence for the company's color.
+    static func companyColor(monogram: String) -> String {
+        guard let value = monogram.utf8.first, value >= UInt8(65) else {
+            return ""
+        }
+        return companyColors[Int(value - UInt8(65)) % companyColors.count]
+    }
+
+    /// Lays out a table cell of fixed visible width, then colors it.
+    /// Padding is measured on the plain text and appended outside the escape sequences,
+    /// so styling can never disturb column alignment.
+    /// - parameter text: Cell contents.
+    /// - parameter pad: Column width in visible characters.
+    /// - parameter code: Escape sequence to style the contents with. Empty leaves it unstyled.
+    /// - returns: The styled, padded cell.
+    static func column(_ text: String, pad: Int, code: String) -> String {
+        let visible = String(text.prefix(pad))
+        let styled = code.isEmpty ? visible : visible.ansi(code)
+        return styled + String(repeating: " ", count: pad - visible.count)
+    }
+
     /// Applies color and style to a single galaxy map cell.
     /// Stars, black holes, destroyed space and empty space are left in the default color.
     /// - parameter cell: One-character cell string from `VmoGalaxyMap`.

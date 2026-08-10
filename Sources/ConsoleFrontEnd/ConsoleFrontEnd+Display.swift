@@ -47,43 +47,45 @@ extension ConsoleFrontEnd: FrontEndDisplay {
     /// Displays a list of players, ranked by descending net worth.
     /// - parameter vmoPlayerRanking: Player ranking view model.
     func display(playerRanking vmoPlayerRanking: VmoPlayerRanking) {
+        // Column widths. Every row is built from these rather than from hand-aligned literals,
+        // so the header, rule and data rows cannot drift apart.
+        let rankWidth = 7
+        let nameWidth = 10
+        let netWorthWidth = 13
+        let companyWidth = 8
         var haveSafe = false
 
         // Print table header
-        output.write("RANK   PLAYER    NET WORTH    ", terminator: "")
+        output.write(String("RANK", pad: rankWidth) + String("PLAYER", pad: nameWidth) + String("NET WORTH", pad: netWorthWidth), terminator: "")
         for company in vmoPlayerRanking.activeCompanies {
             if company.isSafe {
-                output.write(String("\(company.monogram)*", pad: 8), terminator: "")
                 haveSafe = true
-            } else {
-                output.write(String(company.monogram, pad: 8), terminator: "")
             }
+            output.write(Ansi.column("\(company.monogram)\(company.isSafe ? "*" : "")", pad: companyWidth, code: Ansi.companyColor(monogram: company.monogram)), terminator: "")
         }
         output.write()
 
         // Print underscores to table header
-        output.write("----   ------    ---------   ", terminator: "")
+        output.write(String("----", pad: rankWidth) + String("------", pad: nameWidth) + String("---------", pad: netWorthWidth), terminator: "")
         vmoPlayerRanking.activeCompanies.forEach { _ in
-            output.write("------  ", terminator: "")
+            output.write(String("------", pad: companyWidth), terminator: "")
         }
         output.write()
 
         // Print table rows
         for (rank, player) in zip(vmoPlayerRanking.rankedPlayers.indices, vmoPlayerRanking.rankedPlayers) {
-            output.write(" #\(String(String(rank+1), pad: 5))\(String(player.name, pad: 10))\(String(String(money: player.netWorth), pad: 13))", terminator: "")
-            if !vmoPlayerRanking.activeCompanies.isEmpty {
-                for share in player.activeCompanyShares {
-                    output.write("\(String(String(share), pad: 8))", terminator: "")
-                }
+            output.write(String(" #\(rank+1)", pad: rankWidth) + String(player.name, pad: nameWidth) + String(String(money: player.netWorth), pad: netWorthWidth), terminator: "")
+            for share in player.activeCompanyShares {
+                output.write(String("\(share)", pad: companyWidth), terminator: "")
             }
             output.write()
         }
 
         // Print company sizes as progress toward the token count that allows the game to be called.
         if !vmoPlayerRanking.activeCompanies.isEmpty {
-            output.write(String("SIZE / \(vmoPlayerRanking.endGameTokenCount)", pad: 30), terminator: "")
+            output.write(String("SIZE / \(vmoPlayerRanking.endGameTokenCount)", pad: rankWidth + nameWidth + netWorthWidth), terminator: "")
             for company in vmoPlayerRanking.activeCompanies {
-                output.write(String("\(company.size)/\(vmoPlayerRanking.endGameTokenCount)", pad: 8), terminator: "")
+                output.write(Ansi.column("\(company.size)/\(vmoPlayerRanking.endGameTokenCount)", pad: companyWidth, code: Ansi.companyColor(monogram: company.monogram)), terminator: "")
             }
             output.write()
         }
@@ -128,11 +130,23 @@ extension ConsoleFrontEnd: FrontEndDisplay {
             return "[" + String(repeating: "=", count: filled) + String(repeating: "-", count: width - filled) + "]"
         }
 
+        // Column widths, shared by the header, the rule and the data rows.
+        let nameWidth = 20
+        let shareValueWidth = 14
+        let sizeWidth = 10
+        let barWidth = 20
+
         if !vmoCompanies.isEmpty {
-            output.write("COMPANY             PRICE/SHARE  SIZE      PROGRESS TO END GAME")
-            output.write("------------------- -----------  --------  --------------------")
+            output.write(String("COMPANY", pad: nameWidth) + String("PRICE/SHARE", pad: shareValueWidth) + String("SIZE", pad: sizeWidth) + "PROGRESS TO END GAME")
+            output.write(String(String(repeating: "-", count: nameWidth - 1), pad: nameWidth)
+                       + String(String(repeating: "-", count: shareValueWidth - 3), pad: shareValueWidth)
+                       + String(String(repeating: "-", count: sizeWidth - 2), pad: sizeWidth)
+                       + String(repeating: "-", count: barWidth))
             for company in vmoCompanies {
-                output.write("\(String(company.name, pad: 20))\(String(String(money: company.shareValue), pad: 14))\(String("\(company.size)/\(endGameTokenCount)", pad: 10))\(progressBar(size: company.size, width: 20))")
+                output.write(Ansi.column(company.name, pad: nameWidth, code: Ansi.companyColor(monogram: company.monogram))
+                           + String(String(money: company.shareValue), pad: shareValueWidth)
+                           + String("\(company.size)/\(endGameTokenCount)", pad: sizeWidth)
+                           + progressBar(size: company.size, width: barWidth))
             }
             output.write()
         }
