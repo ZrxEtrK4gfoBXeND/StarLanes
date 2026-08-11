@@ -32,10 +32,14 @@ public enum StarLanes {
                 frontEnd.output.write("RUN starlanes --history TO SEE THE TURNS THAT CAN BE REPLAYED.", terminator: "\n\n")
             }
 
+        case "--record"?:
+            frontEnd.displayMatchRecords()
+
         case "--help"?, "-h"?:
             frontEnd.output.write()
             frontEnd.output.write("STAR LANES", terminator: "\n\n")
             frontEnd.output.write("  starlanes                 PLAY THE GAME")
+            frontEnd.output.write("  starlanes --record        SHOW THE RUNNING RECORD OF EVERY MATCHUP")
             frontEnd.output.write("  starlanes --history       REVIEW THE LAST GAME PLAYED")
             frontEnd.output.write("  starlanes --rewind <N>    RESUME THE LAST GAME FROM TURN N", terminator: "\n\n")
 

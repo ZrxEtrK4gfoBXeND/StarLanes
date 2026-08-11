@@ -112,10 +112,14 @@ final class TestFrontEnd: FrontEnd {
     private(set) var persistedSession: Data?
     /// Game log blob, held in memory instead of in the player's home directory.
     private(set) var persistedGameLog: Data?
+    /// Match record blob, held in memory. Seeded by a test that needs a match already in progress.
+    var persistedMatchRecord: Data?
     /// Reason the game ended, captured when it is presented.
     private(set) var endOfGameReason: EndOfGameReason?
     /// Final standings, captured when they are presented.
     private(set) var finalRanking: [VmoPlayer]?
+    /// Match record, captured when it is presented at the end of a game.
+    private(set) var presentedMatchRecord: VmoMatchRecord?
 
     /// Basic initializer.
     /// - parameter gameConfig: Game configuration for the series.
@@ -171,6 +175,14 @@ final class TestFrontEnd: FrontEnd {
 
     func retrieveGameLog(completionHandler: (Data?) -> Void) {
         completionHandler(persistedGameLog)
+    }
+
+    func persistMatchRecord(data: Data) {
+        persistedMatchRecord = data
+    }
+
+    func retrieveMatchRecord(completionHandler: (Data?) -> Void) {
+        completionHandler(persistedMatchRecord)
     }
 
     // MARK: FrontEndInput
@@ -232,6 +244,10 @@ final class TestFrontEnd: FrontEnd {
     }
 
     func display(leaderboard vmoLeaderboardEntries: [VmoLeaderboardEntry]) {}
+
+    func display(matchRecord: VmoMatchRecord) {
+        presentedMatchRecord = matchRecord
+    }
 
     func display(announcements vmoAnnouncements: [VmoAnnouncement]) {}
 

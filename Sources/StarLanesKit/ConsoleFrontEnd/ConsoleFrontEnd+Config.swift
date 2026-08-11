@@ -17,16 +17,40 @@ extension ConsoleFrontEnd: FrontEndConfig {
     /// Configures the series
     /// - Parameter minPlayerCount: Minimum players allowed in the series.
     /// - Parameter maxPlayerCount: Maximum players allowed in the series.
+    /// One line description of where a matchup stands, for the configuration menu.
+    /// - Parameter matchup: Matchup to describe.
+    /// - Returns: Something like "MB VS CLAUDE (CLAUDE LEADS 3-1)".
+    private func matchupSummary(_ matchup: Matchup) -> String {
+        let players = matchup.playerDefs.map { $0.name }.joined(separator: " VS ")
+        let scoreline = matchup.playerNamesByWins.map { "\(matchup.winsByPlayerName[$0] ?? 0)" }.joined(separator: "-")
+        let leaders = matchup.leadingPlayerNames
+
+        if matchup.gamesPlayed == 0 {
+            return players
+        }
+        if leaders.count == matchup.playerNames.count {
+            return "\(players) (TIED \(scoreline))"
+        }
+        return "\(players) (\(leaders.joined(separator: " AND ")) LEADS \(scoreline))"
+    }
+
     /// - Parameter completionHandler: The series game config, house rules and player defs.
     func configureSeries(minPlayerCount: Int, maxPlayerCount: Int, completionHandler: (GameConfig, HouseRules, [VmoPlayerDef]) -> Void) {
         let gameConfig: GameConfig
         let houseRules: HouseRules
 
+        // Offered only once a line-up has finished a game together, so a rematch takes one keystroke.
+        let continuableMatchup = matchRecord?.mostRecentMatchup
+
         output.write("GAME CONFIGURATION:")
         output.write("  1) CLASSIC GAME  - 5 COMPANIES, 12 X 9 MAP")
         output.write("  2) DELUXE GAME - 10 COMPANIES, 16 X 9 MAP")
-        output.write("  3) CUSTOM GAME - CONFIGURE COMPANY, MAP, HOUSE RULES AND MORE.", terminator: "\n\n")
-        output.write("SELECT GAME CONFIGURATION (1-3)", terminator: "")
+        output.write("  3) CUSTOM GAME - CONFIGURE COMPANY, MAP, HOUSE RULES AND MORE.", terminator: continuableMatchup == nil ? "\n\n" : "\n")
+        if let matchup = continuableMatchup {
+            output.write("  4) CONTINUE MATCH - \(matchupSummary(matchup))", terminator: "\n\n")
+        }
+        let highestOption = continuableMatchup == nil ? 3 : 4
+        output.write("SELECT GAME CONFIGURATION (1-\(highestOption))", terminator: "")
 
         func readConfigInt(label: String, keyPath: AnyKeyPath) -> Int {
             let basic  = GameConfig.basic[keyPath:keyPath] as? Int ?? 0
@@ -56,7 +80,7 @@ extension ConsoleFrontEnd: FrontEndConfig {
             return result == "Y"
         }
 
-        switch ConsoleInput().readInt(output: output, min: 1, max: 3, defaultValue: nil) {
+        switch ConsoleInput().readInt(output: output, min: 1, max: highestOption, defaultValue: nil) {
         case 1:
               gameConfig = GameConfig.basic
               houseRules = HouseRules.default
@@ -64,6 +88,16 @@ extension ConsoleFrontEnd: FrontEndConfig {
         case 2:
               gameConfig = GameConfig.deluxe
               houseRules = HouseRules.default
+
+        case 4:
+            // Same players, same map, same rules as the game these opponents last finished.
+            if let matchup = continuableMatchup {
+                output.write()
+                display(matchRecord: VmoMatchRecord(matchup: matchup))
+                completionHandler(matchup.gameConfig, matchup.houseRules, matchup.playerDefs)
+                return
+            }
+            return
 
         case 3:
             output.write()

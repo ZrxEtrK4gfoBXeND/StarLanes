@@ -17,8 +17,20 @@ THE CLASSIC GAME OF INTERSTELLAR TRADING IS BACK...
 ## How To Play
 When you run Star Lanes, you'll be offered instructions. If you're new to the game, please read these instructions to familiarize yourself with the game play.
 
+#### Continuing a Match
+The same opponents keep a running record of every game they finish together, stored in `~/.starlanes-record`. Because it lives apart from the saved game, the tally survives starting a new series, abandoning one, or quitting between games.
+
+Once a line-up has finished a game, the configuration menu offers a fourth option that starts another game with the same players, map and house rules:
+```
+  4) CONTINUE MATCH - MB VS CLAUDE (CLAUDE LEADS 3-1)
+```
+The record is shown when a game ends, and any time with:
+```sh
+starlanes --record
+```
+
 #### Reviewing and Rewinding a Game
-Every turn of the game in progress is recorded to `~/.starlanes-log`, separately from the saved game.
+Every turn of the game in progress is recorded to `~/.starlanes-log`, separately from the saved game. Only the most recent game is kept.
 ```sh
 starlanes --history      # review the last game: moves, mergers, dividends and net worth per turn
 starlanes --rewind 20    # restore the state saved at turn 20, then run starlanes and resume

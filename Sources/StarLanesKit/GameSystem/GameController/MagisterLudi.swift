@@ -304,6 +304,23 @@ public class MagisterLudi {
             series.leaderboard.gameEnded(winningPlayerName: vmoPlayerRanking.rankedPlayers.first!.name)
             frontEnd.display(leaderboard: series.leaderboard.vmoLeaderboardEntries)
 
+            // The running record of this line-up, which outlives the series and the saved game.
+            frontEnd.retrieveMatchRecord { data in
+                var matchRecord = (data.flatMap { MatchRecord(data: $0) }) ?? MatchRecord()
+                matchRecord.recordGame(
+                    playerDefs: series.playerDefs,
+                    gameConfig: series.gameConfig,
+                    houseRules: series.houseRules,
+                    ranking: vmoPlayerRanking.rankedPlayers.map { GameLogRanking(name: $0.name, netWorth: $0.netWorth) }
+                )
+                if let matchRecordData = matchRecord.data {
+                    frontEnd.persistMatchRecord(data: matchRecordData)
+                }
+                if let matchup = matchRecord.matchup(forPlayerNames: series.playerDefs.map { $0.name }) {
+                    frontEnd.display(matchRecord: VmoMatchRecord(matchup: matchup))
+                }
+            }
+
             let persistedSessionContainer = PersistedSessionContainer(version: starlanesVersion, series: series, game: nil)
             if let data = persistedSessionContainer.data {
                 frontEnd.persistSession(data: data)

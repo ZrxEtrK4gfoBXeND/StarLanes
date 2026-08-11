@@ -152,6 +152,29 @@ extension ConsoleFrontEnd: FrontEndDisplay {
         }
     }
 
+    /// Displays the running record of the current line-up of players.
+    /// This covers every game these players have finished together, across sessions.
+    /// - parameter matchRecord: View model of the matchup record.
+    func display(matchRecord: VmoMatchRecord) {
+        let nameWidth = 12
+        let wonWidth = 6
+        let bestWidth = 11
+
+        output.write("* * * MATCH RECORD * * *", terminator: "\n\n")
+        output.write("\(matchRecord.playerNames.joined(separator: " VS "))  -  \(matchRecord.gamesPlayed) GAME\(matchRecord.gamesPlayed == 1 ? "" : "S")", terminator: "\n\n")
+        output.write(String("PLAYER", pad: nameWidth) + String("WON", pad: wonWidth) + "BEST GAME")
+        output.write(String("----------", pad: nameWidth) + String("---", pad: wonWidth) + String(repeating: "-", count: bestWidth))
+        for standing in matchRecord.standings {
+            output.write(String("\(standing.name)\(standing.isLeading ? " *" : "")", pad: nameWidth)
+                       + String("\(standing.gamesWon)", pad: wonWidth)
+                       + String(money: standing.bestNetWorth))
+        }
+        output.write()
+        if matchRecord.standings.contains(where: { $0.isLeading }) {
+            output.write("* = leads the match", terminator: "\n\n")
+        }
+    }
+
     /// Displays a fatal error message. Does not terminate the app.
     /// - All conditions that trigger this are easy to guard against; this should never be seen in released game.
     /// - parameter error: Error object from Magister Ludi.

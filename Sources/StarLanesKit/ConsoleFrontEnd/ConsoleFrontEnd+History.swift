@@ -27,6 +27,21 @@ extension ConsoleFrontEnd {
         output.write("PLAY A GAME AND THE MOVES WILL BE RECORDED HERE.", terminator: "\n\n")
     }
 
+    /// Presents the running record of every matchup, most recently played first.
+    func displayMatchRecords() {
+        guard let matchRecord = matchRecord, !matchRecord.matchups.isEmpty else {
+            output.write()
+            output.write("NO MATCHES ON RECORD.")
+            output.write("FINISH A GAME AND THE RESULT WILL BE RECORDED HERE.", terminator: "\n\n")
+            return
+        }
+
+        output.write()
+        for matchup in matchRecord.matchups.sorted(by: { $0.lastPlayed > $1.lastPlayed }) {
+            display(matchRecord: VmoMatchRecord(matchup: matchup))
+        }
+    }
+
     /// Presents the move-by-move history of the last game played.
     func displayGameHistory() {
         guard let gameLog = retrieveGameLog() else {

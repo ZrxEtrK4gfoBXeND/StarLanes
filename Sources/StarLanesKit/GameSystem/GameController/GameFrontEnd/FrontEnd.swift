@@ -51,6 +51,16 @@ public protocol FrontEndPersist {
     /// so the turns played before the session was saved are not lost.
     /// - parameter completionHandler: The delegate calls this with the blob of data used to persist the log.
     func retrieveGameLog(completionHandler: (Data?) -> Void)
+
+    /// Delegation to store the running record of every matchup.
+    /// Kept apart from the session so that starting a new series, or abandoning one,
+    /// never loses the tally of games won.
+    /// - parameter data: Blob of data containing the match record.
+    func persistMatchRecord(data: Data)
+
+    /// Delegation to retrieve the running record of every matchup.
+    /// - parameter completionHandler: The delegate calls this with the blob of data used to persist the record.
+    func retrieveMatchRecord(completionHandler: (Data?) -> Void)
 }
 
 /// Front end delegates to acquire input responses from players. Each has a completion handler that returns control to Magister Ludi.
@@ -137,6 +147,11 @@ public protocol FrontEndDisplay {
     /// Delegation to display the series leaderboard. Players are listed in descending order of number of games won.
     /// - parameter leaderboard: Array of leaderboard entry view models.
     func display(leaderboard vmoLeaderboardEntries: [VmoLeaderboardEntry])
+
+    /// Delegation to display the running record of the current line-up of players.
+    /// Unlike the leaderboard, this covers every game these players have finished together.
+    /// - parameter matchRecord: View model of the matchup record.
+    func display(matchRecord: VmoMatchRecord)
 
     /// Delegation to display announcements.
     /// Note: this is a synchronous call. If the announcements are to take time (e.g., animated), the front end can queue these up for
