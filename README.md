@@ -30,11 +30,14 @@ starlanes --record
 ```
 
 #### Reviewing and Rewinding a Game
-Every turn of the game in progress is recorded to `~/.starlanes-log`, separately from the saved game. Only the most recent game is kept.
+Every turn is recorded to `~/.starlanes-log`, separately from the saved game. The last three games are kept.
 ```sh
 starlanes --history      # review the last game: moves, mergers, dividends and net worth per turn
+starlanes --history 2    # review the game before it; 3 is the oldest kept
 starlanes --rewind 20    # restore the state saved at turn 20, then run starlanes and resume
 ```
+Only the most recent game can be rewound into. Games behind it keep their moves and results for review but give up their turn by turn states, which is what keeps the file small.
+
 Rewinding replaces your saved game and drops the turns after the one you picked, since play from that point replaces them. You're asked to confirm first.
 
 #### Game Strategy and Tips

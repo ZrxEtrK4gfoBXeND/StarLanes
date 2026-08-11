@@ -31,6 +31,15 @@ class FullGameTests: XCTestCase {
         return frontEnd
     }
 
+    /// The log of the game just played, read back the way the game stores it.
+    /// Games are kept in an archive, and the one just played is at its front.
+    private func playedGameLog(_ frontEnd: TestFrontEnd) -> GameLog? {
+        guard let data = frontEnd.persistedGameLog, let archive = GameLogArchive(data: data) else {
+            return nil
+        }
+        return archive.currentGame
+    }
+
     func testAGameFinishes() {
         let frontEnd = playGame(seed: 0)
 
@@ -98,7 +107,7 @@ class FullGameTests: XCTestCase {
         let frontEnd = playGame(seed: 0)
 
         XCTAssertNotNil(frontEnd.persistedSession, "the session must be saved")
-        guard let logData = frontEnd.persistedGameLog, let log = GameLog(data: logData) else {
+        guard let log = playedGameLog(frontEnd) else {
             return XCTFail("the game log must be written and readable")
         }
         XCTAssertFalse(log.entries.isEmpty)
@@ -108,7 +117,7 @@ class FullGameTests: XCTestCase {
 
     func testTheLogNumbersEveryTurnWithoutGaps() {
         let frontEnd = playGame(seed: 0)
-        guard let logData = frontEnd.persistedGameLog, let log = GameLog(data: logData) else {
+        guard let log = playedGameLog(frontEnd) else {
             return XCTFail("no log")
         }
 
@@ -118,7 +127,7 @@ class FullGameTests: XCTestCase {
     func testEveryLoggedTurnCanBeRewoundTo() {
         // Rewinding is only possible because each entry carries a complete game state.
         let frontEnd = playGame(seed: 0)
-        guard let logData = frontEnd.persistedGameLog, let log = GameLog(data: logData) else {
+        guard let log = playedGameLog(frontEnd) else {
             return XCTFail("no log")
         }
 
@@ -130,7 +139,7 @@ class FullGameTests: XCTestCase {
 
     func testLoggedNetWorthMatchesTheFinalRanking() {
         let frontEnd = playGame(seed: 0)
-        guard let logData = frontEnd.persistedGameLog, let log = GameLog(data: logData),
+        guard let log = playedGameLog(frontEnd),
               let lastEntry = log.entries.last, let ranking = frontEnd.finalRanking else {
             return XCTFail("no log or ranking")
         }
@@ -166,7 +175,7 @@ class FullGameTests: XCTestCase {
     func testNoPlayerEverHoldsNegativeCash() {
         // The engine trusts the front end to prevent overspending, so this pins that contract.
         let frontEnd = playGame(seed: 0)
-        guard let logData = frontEnd.persistedGameLog, let log = GameLog(data: logData) else {
+        guard let log = playedGameLog(frontEnd) else {
             return XCTFail("no log")
         }
 
@@ -182,7 +191,7 @@ class FullGameTests: XCTestCase {
         // Company size drives share price, safety and the end of the game, so a drift between
         // the map and the company records would corrupt all three.
         let frontEnd = playGame(seed: 0)
-        guard let logData = frontEnd.persistedGameLog, let log = GameLog(data: logData),
+        guard let log = playedGameLog(frontEnd),
               let snapshot = log.entries.last?.snapshot else {
             return XCTFail("no snapshot")
         }
@@ -202,7 +211,7 @@ class FullGameTests: XCTestCase {
 
     func testSafeCompaniesStaySafeForTheRestOfTheGame() {
         let frontEnd = playGame(seed: 0)
-        guard let logData = frontEnd.persistedGameLog, let log = GameLog(data: logData) else {
+        guard let log = playedGameLog(frontEnd) else {
             return XCTFail("no log")
         }
 

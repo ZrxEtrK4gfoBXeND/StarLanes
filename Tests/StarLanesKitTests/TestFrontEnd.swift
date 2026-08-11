@@ -111,7 +111,8 @@ final class TestFrontEnd: FrontEnd {
     /// Session blob, held in memory instead of in the player's home directory.
     private(set) var persistedSession: Data?
     /// Game log blob, held in memory instead of in the player's home directory.
-    private(set) var persistedGameLog: Data?
+    /// Seeded by a test that needs games already on record.
+    var persistedGameLog: Data?
     /// Match record blob, held in memory. Seeded by a test that needs a match already in progress.
     var persistedMatchRecord: Data?
     /// Reason the game ended, captured when it is presented.

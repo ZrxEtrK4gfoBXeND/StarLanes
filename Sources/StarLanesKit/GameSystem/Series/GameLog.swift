@@ -123,6 +123,20 @@ extension GameLog {
         entries[entries.count - 1].snapshot = game
     }
 
+    /// Gives up the turn by turn game states, keeping the moves and standings.
+    /// Snapshots are the bulk of a log and only the most recent game can be rewound into,
+    /// so games that fall behind it release theirs.
+    mutating func discardSnapshots() {
+        for index in entries.indices {
+            entries[index].snapshot = nil
+        }
+    }
+
+    /// Whether any turn in this game can still be rewound into.
+    var isRewindable: Bool {
+        return entries.contains { $0.snapshot != nil }
+    }
+
     /// Drops a turn that was opened but never played out.
     /// This happens when a player ends the game instead of taking their turn, by calling it or
     /// conceding, which leaves an entry with no move, no standings and nothing to rewind to.

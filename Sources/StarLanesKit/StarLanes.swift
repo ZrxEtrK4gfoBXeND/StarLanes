@@ -21,7 +21,8 @@ public enum StarLanes {
         switch arguments.first {
         case "--history"?:
             // Reviewing only reads the log, so a saved game is left untouched.
-            frontEnd.displayGameHistory()
+            // An optional game number reaches back past the most recent game.
+            frontEnd.displayGameHistory(gameNumber: Int(arguments.dropFirst().first ?? "") ?? 1)
 
         case "--rewind"?:
             if let turnNumber = Int(arguments.dropFirst().first ?? "") {
@@ -41,6 +42,7 @@ public enum StarLanes {
             frontEnd.output.write("  starlanes                 PLAY THE GAME")
             frontEnd.output.write("  starlanes --record        SHOW THE RUNNING RECORD OF EVERY MATCHUP")
             frontEnd.output.write("  starlanes --history       REVIEW THE LAST GAME PLAYED")
+            frontEnd.output.write("  starlanes --history <N>   REVIEW AN EARLIER GAME, 1 IS THE LAST PLAYED")
             frontEnd.output.write("  starlanes --rewind <N>    RESUME THE LAST GAME FROM TURN N", terminator: "\n\n")
 
         default:

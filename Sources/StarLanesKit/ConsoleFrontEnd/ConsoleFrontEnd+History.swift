@@ -11,13 +11,13 @@ import Foundation
 /// so reviewing a game never disturbs a game in progress.
 extension ConsoleFrontEnd {
 
-    /// Reads the log of the last game played.
-    /// - returns: The log, or nil when no game has been logged yet.
-    private func retrieveGameLog() -> GameLog? {
+    /// Reads the archive of recent games.
+    /// - returns: The archive, or nil when no game has been logged yet.
+    private func retrieveGameLogArchive() -> GameLogArchive? {
         guard let data = try? Data(contentsOf: gameLogFileURL) else {
             return nil
         }
-        return GameLog(data: data)
+        return GameLogArchive(data: data)
     }
 
     /// Reports that no log is available, which is expected before any game has been played to a turn.
@@ -42,10 +42,17 @@ extension ConsoleFrontEnd {
         }
     }
 
-    /// Presents the move-by-move history of the last game played.
-    func displayGameHistory() {
-        guard let gameLog = retrieveGameLog() else {
+    /// Presents the move-by-move history of a recent game.
+    /// - parameter gameNumber: 1 for the most recent game, 2 for the one before it, and so on.
+    func displayGameHistory(gameNumber: Int = 1) {
+        guard let archive = retrieveGameLogArchive(), !archive.games.isEmpty else {
             displayNoGameLog()
+            return
+        }
+
+        guard let gameLog = archive.game(number: gameNumber) else {
+            output.write()
+            output.write("GAME \(gameNumber) IS NOT KEPT. \(archive.games.count) GAME\(archive.games.count == 1 ? " IS" : "S ARE") ON RECORD.", terminator: "\n\n")
             return
         }
 
@@ -53,7 +60,7 @@ extension ConsoleFrontEnd {
         let companyNames = (0 ..< gameConfig.shippingCompanyCount).map { VmoCompany(company: Company(index: $0)).name }
 
         output.write()
-        output.write("* * * HISTORY OF LAST GAME * * *", terminator: "\n\n")
+        output.write("* * * \(gameNumber == 1 ? "HISTORY OF LAST GAME" : "HISTORY OF GAME \(gameNumber) OF \(archive.games.count)") * * *", terminator: "\n\n")
         output.write("MAP: \(gameConfig.mapColumnCount) X \(gameConfig.mapRowCount), COMPANIES: \(gameConfig.shippingCompanyCount), SAFE AT: \(gameConfig.safeTokenCount), END GAME AT: \(gameConfig.endGameTokenCount)")
         output.write("PLAYERS: " + gameLog.series.playerDefs.map { "\($0.name)\($0.isComputer ? " (COMPUTER)" : "")" }.joined(separator: ", "), terminator: "\n\n")
 
@@ -104,6 +111,19 @@ extension ConsoleFrontEnd {
         if rewindableTurns > 0 {
             output.write("\(rewindableTurns) TURNS CAN BE REPLAYED. TO RESUME FROM A TURN:", terminator: "\n\n")
             output.write("    starlanes --rewind <TURN>", terminator: "\n\n")
+        } else {
+            output.write("THIS GAME IS KEPT FOR REVIEW ONLY. ONLY THE LAST GAME CAN BE REPLAYED.", terminator: "\n\n")
+        }
+
+        // Point the way to the other games kept, so they are not invisible.
+        if archive.games.count > 1 {
+            output.write("GAMES ON RECORD:")
+            for (index, game) in zip(archive.games.indices, archive.games) {
+                let outcome = game.endOfGameDescription ?? "UNFINISHED, \(game.entries.count) TURNS"
+                output.write("  \(index + 1)) \(String(game.playerNames.joined(separator: " VS "), pad: 20))\(outcome)\(index + 1 == gameNumber ? "   <- SHOWN ABOVE" : "")")
+            }
+            output.write()
+            output.write("    starlanes --history <GAME>", terminator: "\n\n")
         }
     }
 
@@ -111,7 +131,8 @@ extension ConsoleFrontEnd {
     /// The saved session is replaced, so the player is asked to confirm first.
     /// - parameter turnNumber: Turn number to resume from, as listed by `--history`.
     func rewind(toTurnNumber turnNumber: Int) {
-        guard let gameLog = retrieveGameLog() else {
+        // Only the most recent game keeps the states needed to resume from a turn.
+        guard let archive = retrieveGameLogArchive(), let gameLog = archive.currentGame else {
             displayNoGameLog()
             return
         }
@@ -152,9 +173,12 @@ extension ConsoleFrontEnd {
         output.write()
         if let data = persistedSessionContainer.data, ConsoleFrontEnd.writeSession(data: data) {
             // Drop the abandoned turns so the resumed game continues one consistent timeline.
+            // Only the current game changes; the games kept behind it are untouched.
+            var rewoundArchive = archive
             var rewoundGameLog = gameLog
             rewoundGameLog.discardTurns(after: turnNumber)
-            if let logData = rewoundGameLog.data {
+            rewoundArchive.updateCurrentGame(rewoundGameLog)
+            if let logData = rewoundArchive.data {
                 persistGameLog(data: logData)
             }
             output.write("DONE. RUN starlanes AND RESUME THE GAME TO CONTINUE FROM TURN \(turnNumber + 1).", terminator: "\n\n")

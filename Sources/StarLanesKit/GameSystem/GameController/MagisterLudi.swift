@@ -22,6 +22,8 @@ public class MagisterLudi {
     private var game: Game!
     /// Move-by-move record of the current game (persistable, separate from the session).
     private var gameLog: GameLog!
+    /// The last few games played, holding `gameLog` at its front.
+    private var gameLogArchive = GameLogArchive()
 
     /// Basic initializer
     /// - parameter frontEnd: Front end implementation
@@ -77,13 +79,14 @@ public class MagisterLudi {
                         // Continue the existing log when it belongs to this same unfinished game,
                         // so resuming does not discard the turns already recorded.
                         frontEnd.retrieveGameLog { logData in
-                            if  let logData = logData,
-                                let persistedLog = GameLog(data: logData),
+                            gameLogArchive = (logData.flatMap { GameLogArchive(data: $0) }) ?? GameLogArchive()
+                            if  let persistedLog = gameLogArchive.currentGame,
                                 persistedLog.endOfGameDescription == nil,
                                 persistedLog.playerNames == series.playerDefs.map({ $0.name }) {
                                 gameLog = persistedLog
                             } else {
                                 gameLog = GameLog(version: starlanesVersion, series: series)
+                                gameLogArchive.beginGame(gameLog)
                             }
                         }
                     }
@@ -132,6 +135,11 @@ public class MagisterLudi {
                 game = Game(model: gameModel, laggardMonitor: laggardMonitor, companiesDeclaredSafe: companiesDeclaredSafe, playerIndex: 0, playerOrder: playerOrder)
                 playerAgents.resetAnnouncements()
                 gameLog = GameLog(version: starlanesVersion, series: series)
+                // Load the archive before adding to it, so games from earlier runs are kept.
+                frontEnd.retrieveGameLog { logData in
+                    gameLogArchive = (logData.flatMap { GameLogArchive(data: $0) }) ?? GameLogArchive()
+                }
+                gameLogArchive.beginGame(gameLog)
                 state = .startRound
             }
 
@@ -264,7 +272,8 @@ public class MagisterLudi {
             // Snapshot after the player index advances, so restoring this entry resumes with the
             // next player to act, matching the state the session file is saved in below.
             gameLog.endTurn(game: game)
-            if let logData = gameLog.data {
+            gameLogArchive.updateCurrentGame(gameLog)
+            if let logData = gameLogArchive.data {
                 frontEnd.persistGameLog(data: logData)
             }
 
@@ -297,7 +306,8 @@ public class MagisterLudi {
                 description: endOfGameDescription,
                 ranking: vmoPlayerRanking.rankedPlayers.map { GameLogRanking(name: $0.name, netWorth: $0.netWorth) }
             )
-            if let logData = gameLog.data {
+            gameLogArchive.updateCurrentGame(gameLog)
+            if let logData = gameLogArchive.data {
                 frontEnd.persistGameLog(data: logData)
             }
 
