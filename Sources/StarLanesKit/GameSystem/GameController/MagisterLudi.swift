@@ -8,8 +8,12 @@
 /// The heart of the game engine. Also known as a view model.
 /// Magister Ludi is responsible for running the game and series.
 public class MagisterLudi {
-    /// Only update this when the persisted state file format changes.
-    private let starlanesVersion = "1.1"
+    /// Version of the game, presented on the title card. Update this when the game changes.
+    private let starlanesVersion = "1.2"
+    /// Version of the persisted state file format.
+    /// Only update this when that format changes, because a session written by any other
+    /// version is discarded, taking the series and its leaderboard with it.
+    private let persistedStateVersion = "1.1"
     /// Front end implementation.
     private let frontEnd: FrontEnd
     /// Current state.
@@ -54,7 +58,7 @@ public class MagisterLudi {
             state = .awaitingInput
             frontEnd.retrievePersistedSession { data in
                 if  let data = data,
-                    let persistedSession = PersistedSessionContainer(data: data), persistedSession.version == starlanesVersion {
+                    let persistedSession = PersistedSessionContainer(data: data), persistedSession.version == persistedStateVersion {
                     series = persistedSession.series
                     if let game = persistedSession.game {
                         self.game = game
@@ -85,7 +89,7 @@ public class MagisterLudi {
                                 persistedLog.playerNames == series.playerDefs.map({ $0.name }) {
                                 gameLog = persistedLog
                             } else {
-                                gameLog = GameLog(version: starlanesVersion, series: series)
+                                gameLog = GameLog(version: persistedStateVersion, series: series)
                                 gameLogArchive.beginGame(gameLog)
                             }
                         }
@@ -134,7 +138,7 @@ public class MagisterLudi {
                 let companiesDeclaredSafe = Array(repeating: false, count: series.gameConfig.shippingCompanyCount)
                 game = Game(model: gameModel, laggardMonitor: laggardMonitor, companiesDeclaredSafe: companiesDeclaredSafe, playerIndex: 0, playerOrder: playerOrder)
                 playerAgents.resetAnnouncements()
-                gameLog = GameLog(version: starlanesVersion, series: series)
+                gameLog = GameLog(version: persistedStateVersion, series: series)
                 // Load the archive before adding to it, so games from earlier runs are kept.
                 frontEnd.retrieveGameLog { logData in
                     gameLogArchive = (logData.flatMap { GameLogArchive(data: $0) }) ?? GameLogArchive()
@@ -277,7 +281,7 @@ public class MagisterLudi {
                 frontEnd.persistGameLog(data: logData)
             }
 
-            let persistedSessionContainer = PersistedSessionContainer(version: starlanesVersion, series: series, game: game)
+            let persistedSessionContainer = PersistedSessionContainer(version: persistedStateVersion, series: series, game: game)
             if let data = persistedSessionContainer.data {
                 frontEnd.persistSession(data: data)
             }
@@ -331,7 +335,7 @@ public class MagisterLudi {
                 }
             }
 
-            let persistedSessionContainer = PersistedSessionContainer(version: starlanesVersion, series: series, game: nil)
+            let persistedSessionContainer = PersistedSessionContainer(version: persistedStateVersion, series: series, game: nil)
             if let data = persistedSessionContainer.data {
                 frontEnd.persistSession(data: data)
             }
