@@ -105,6 +105,9 @@ final class TestFrontEnd: FrontEnd {
     private let fixedPlayerOrder: [Int]
     /// Answer given when asked to call the game.
     private let callsGame: Bool
+    /// When true, the player being asked answers for itself instead of a fixed reply.
+    /// A benchmark of two computer players needs each to make its own decisions.
+    var playersDecideForThemselves = false
     /// Answer given when asked to play another game in the series.
     private let playsAnotherGame: Bool
 
@@ -189,11 +192,12 @@ final class TestFrontEnd: FrontEnd {
     // MARK: FrontEndInput
 
     func inputCallGame(input: Input, endGameTokenCount: Int, completionHandler: (Bool) -> Void) {
-        completionHandler(callsGame)
+        completionHandler(playersDecideForThemselves ? input.readYorN(output: recordedOutput) == "Y" : callsGame)
     }
 
     func inputConcedeGame(input: Input, playerDef: VmoPlayerDef, completionHandler: (Bool) -> Void) {
-        completionHandler(false)
+        // A conceding player loses, so in a benchmark this is a real decision, not a formality.
+        completionHandler(playersDecideForThemselves ? input.readYorN(output: recordedOutput) == "Y" : false)
     }
 
     func inputPlayAnotherGame(input: Input, completionHandler: (Bool) -> Void) {

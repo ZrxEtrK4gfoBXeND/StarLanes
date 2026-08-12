@@ -15,4 +15,17 @@ public struct VmoPlayerDef: Codable {
     public let name: String
     /// If true, Magister Ludi will supply the input for the player during the game.
     public let isComputer: Bool
+    /// How a computer player decides what shares to buy. Nil uses the default strategy.
+    /// Optional so that a session saved before strategies existed still reads.
+    public var purchaseStrategy: PurchaseStrategy?
+
+    /// Basic initializer.
+    /// - parameter name: Display name.
+    /// - parameter isComputer: True when the Magister Ludi supplies this player's input.
+    /// - parameter purchaseStrategy: Share buying strategy for a computer player.
+    public init(name: String, isComputer: Bool, purchaseStrategy: PurchaseStrategy? = nil) {
+        self.name = name
+        self.isComputer = isComputer
+        self.purchaseStrategy = purchaseStrategy
+    }
 }

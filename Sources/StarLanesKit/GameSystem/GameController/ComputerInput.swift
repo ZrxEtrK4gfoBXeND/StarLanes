@@ -9,6 +9,14 @@
 class ComputerInput: Input {
     /// A queued response of how many shares to purchase for all available companies this turn.
     var intInput = [Int]()
+    /// How this player decides what to buy.
+    let purchaseStrategy: PurchaseStrategy
+
+    /// Basic initializer.
+    /// - parameter purchaseStrategy: Share buying strategy.
+    init(purchaseStrategy: PurchaseStrategy = .classic) {
+        self.purchaseStrategy = purchaseStrategy
+    }
 
     /// Computer player's response to a yes/no question.
     /// - parameters:
@@ -105,7 +113,27 @@ class ComputerInput: Input {
         let activeCompanies = gameModel.activeCompanies
         let player = gameModel.players[playerIndex]
         var cash = player.cash
-        let selectedCompanyIndex = selectCompany(shares: gameModel.companies.filter { $0.isActive }.map {player.shares[$0.index]}, activeCompanies: activeCompanies)
+
+        let selectedCompanyIndex: Int?
+        switch purchaseStrategy {
+        case .classic:
+            selectedCompanyIndex = selectCompany(shares: gameModel.companies.filter { $0.isActive }.map {player.shares[$0.index]}, activeCompanies: activeCompanies)
+
+        case .mergeAware:
+            // The same choice as the classic strategy, made among the companies that still have
+            // somewhere to go. Removing the cornered ones is what breaks the loop the classic
+            // strategy can fall into, where the company it owns most of is also the cheapest on
+            // the board, so nothing can ever be cheaper than two thirds of it.
+            let scoringByIndex = PurchaseScoring.rank(gameModel: gameModel)
+            let companiesWithAFuture = Set(scoringByIndex.filter { $0.hasFuture }.map { $0.companyIndex })
+            let candidates = activeCompanies.filter { companiesWithAFuture.contains($0.index) }
+            let viableCompanies = candidates.isEmpty ? activeCompanies : candidates
+            selectedCompanyIndex = selectCompany(
+                shares: viableCompanies.map { player.shares[$0.index] },
+                activeCompanies: viableCompanies
+            )
+        }
+
         var result = [Int]()
         for index in activeCompanies.indices where cash >= activeCompanies[index].shareValue {
             let amount = activeCompanies[index].index == selectedCompanyIndex ? cash / activeCompanies[index].shareValue : 0

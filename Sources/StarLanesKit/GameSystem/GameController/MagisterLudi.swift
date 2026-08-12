@@ -79,7 +79,7 @@ public class MagisterLudi {
                     }
 
                     if state != .configureSeries {
-                        playerAgents = series.playerDefs.map { PlayerAgent(name: $0.name, input: $0.isComputer  ? ComputerInput() : frontEnd.input) }
+                        playerAgents = series.playerDefs.map { PlayerAgent(name: $0.name, input: $0.isComputer  ? ComputerInput(purchaseStrategy: $0.purchaseStrategy ?? .classic) : frontEnd.input) }
                         // Continue the existing log when it belongs to this same unfinished game,
                         // so resuming does not discard the turns already recorded.
                         frontEnd.retrieveGameLog { logData in
@@ -111,7 +111,7 @@ public class MagisterLudi {
                     state = .error(.nonuniquePlayerNames(submittedNames:playerDefs.map { $0.name }))
                 } else {
                     series = Series(gameConfig: gameConfig, houseRules: houseRules, playerDefs: playerDefs, leaderboard: Leaderboard(playerDefs: playerDefs))
-                    playerAgents = playerDefs.map { PlayerAgent(name: $0.name, input: $0.isComputer  ? ComputerInput() : frontEnd.input) }
+                    playerAgents = playerDefs.map { PlayerAgent(name: $0.name, input: $0.isComputer  ? ComputerInput(purchaseStrategy: $0.purchaseStrategy ?? .classic) : frontEnd.input) }
                     state = .startGame
                 }
             }
