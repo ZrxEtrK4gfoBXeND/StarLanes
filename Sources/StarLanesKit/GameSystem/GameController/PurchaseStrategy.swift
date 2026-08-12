@@ -13,6 +13,13 @@ public enum PurchaseStrategy: String, Codable {
     case classic
     /// Buys where a merger is about to pay, judged from the map.
     case mergeAware
+    /// Concentrates like the original, but only in companies a merger would actually pay on.
+    ///
+    /// Shares convert into the surviving company two for one, so a merger returns
+    /// `survivorValue / (2 * value)` per dollar: it profits only when the surviving share price
+    /// is more than twice this company's. Below that line, being absorbed destroys half the
+    /// stake, which is a loss the original heuristic has no way to see.
+    case profitableMerge
 }
 
 /// Scores each company by what a dollar spent on it is expected to return.
@@ -42,6 +49,10 @@ struct PurchaseScoring {
     /// it is expected to stay exactly where it is. This is the cornered company that the original
     /// heuristic could buy every turn until its money was gone.
     let hasFuture: Bool
+    /// True when this company can still be absorbed, and the company that would swallow it is
+    /// worth more than twice as much per share. Only then does the two for one conversion return
+    /// more than it costs.
+    let hasProfitableMerge: Bool
 }
 
 extension PurchaseScoring {
@@ -86,7 +97,7 @@ extension PurchaseScoring {
         return gameModel.activeCompanies.map { company -> PurchaseScoring in
             let shareValue = Double(company.shareValue)
             guard shareValue > 0 else {
-                return PurchaseScoring(companyIndex: company.index, score: 0, hasFuture: false)
+                return PurchaseScoring(companyIndex: company.index, score: 0, hasFuture: false, hasProfitableMerge: false)
             }
 
             // What a dollar is worth if the company is left to grow: it holds its value, and
@@ -99,6 +110,7 @@ extension PurchaseScoring {
             // What a dollar is worth if the company is absorbed.
             var valueIfMerged = 0.0
             var chanceOfMerging = 0.0
+            var hasProfitableMerge = false
             if !company.isSafe {
                 let largerNeighbours = (touchingCompanies[company.index] ?? Set<Int>())
                     .map { companies[$0] }
@@ -112,6 +124,8 @@ extension PurchaseScoring {
                     // Two for one conversion into the surviving company.
                     let conversion = Double(bestSurvivor.shareValue) / (2.0 * shareValue)
                     valueIfMerged = bonus + conversion
+                    // Above this line the conversion returns more than the stake it consumes.
+                    hasProfitableMerge = conversion > 1.0
 
                     // The more places the two companies could be joined, the sooner it happens.
                     chanceOfMerging = min(Double(mergePlaces[company.index] ?? 0) / 3.0, 1.0)
@@ -125,7 +139,7 @@ extension PurchaseScoring {
             // stake, so that does not count as a future.
             let hasFuture = room > 0 || (chanceOfMerging > 0 && valueIfMerged > 1.0)
 
-            return PurchaseScoring(companyIndex: company.index, score: score, hasFuture: hasFuture)
+            return PurchaseScoring(companyIndex: company.index, score: score, hasFuture: hasFuture, hasProfitableMerge: hasProfitableMerge)
         }
         .sorted { $0.score > $1.score }
     }

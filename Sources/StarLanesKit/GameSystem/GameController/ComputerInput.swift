@@ -132,6 +132,25 @@ class ComputerInput: Input {
                 shares: viableCompanies.map { player.shares[$0.index] },
                 activeCompanies: viableCompanies
             )
+
+        case .profitableMerge:
+            // Concentrate exactly as the classic strategy does, because concentration is what it
+            // gets right, but choose among only those companies a merger would pay on: the
+            // surviving company must be worth more than twice this one, or the two for one
+            // conversion destroys half the stake.
+            //
+            // With nothing qualifying, fall back to the classic choice over everything rather
+            // than sit on cash. Cash earns nothing while shares pay a dividend every turn, so
+            // waiting for a better company is more expensive than buying a worse one.
+            let profitableIndices = Set(
+                PurchaseScoring.rank(gameModel: gameModel).filter { $0.hasProfitableMerge }.map { $0.companyIndex }
+            )
+            let profitableCompanies = activeCompanies.filter { profitableIndices.contains($0.index) }
+            let chosenFrom = profitableCompanies.isEmpty ? activeCompanies : profitableCompanies
+            selectedCompanyIndex = selectCompany(
+                shares: chosenFrom.map { player.shares[$0.index] },
+                activeCompanies: chosenFrom
+            )
         }
 
         var result = [Int]()
