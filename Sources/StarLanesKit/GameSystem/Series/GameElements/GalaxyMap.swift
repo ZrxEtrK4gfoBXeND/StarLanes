@@ -7,18 +7,18 @@
 import Foundation
 
 /// Models the galaxy map
-final class GalaxyMap {
+public final class GalaxyMap {
     /// Column count in the map
-    let columnCount: Int
+    public let columnCount: Int
     /// Row count in the map
-    let rowCount: Int
+    public let rowCount: Int
     /// Token values in the map. This is private, and accessed by getter/setter that protects against invalid indices.
     private var map: [[Token?]]
 
     /// Basic initializer.
     /// - parameter columnCount: Column count of the map.
     /// - parameter rowCount: Row count of the map
-    init(columnCount: Int, rowCount: Int) {
+    public init(columnCount: Int, rowCount: Int) {
         self.columnCount = columnCount
         self.rowCount    = rowCount
         map = Array(repeating: Array(repeating: nil, count: rowCount), count: columnCount)
@@ -52,7 +52,7 @@ final class GalaxyMap {
 
     /// Galaxy map coordinate getter and setter.
     /// These guard against invalid coordinates, which occur when naively accessing cardinally adjacent coordinates.
-    subscript(coordinate: Coordinate) -> Token? {
+    public subscript(coordinate: Coordinate) -> Token? {
         get {
             if coordinate.column < 0 || coordinate.column >= columnCount || coordinate.row < 0 || coordinate.row >= rowCount {
                 return nil
@@ -75,7 +75,7 @@ extension GalaxyMap: Codable {
         case map
     }
 
-    convenience init(from decoder: Decoder) throws {
+    public convenience init(from decoder: Decoder) throws {
         let container      = try decoder.container(keyedBy: CodingKeys.self)
         let mapColumnCount = try container.decode(Int.self, forKey: .columnCount)
         let mapRowCount    = try container.decode(Int.self, forKey: .rowCount)
@@ -91,7 +91,7 @@ extension GalaxyMap: Codable {
         }
     }
 
-    func encode(to encoder: Encoder) throws {
+    public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(columnCount, forKey: .columnCount)
         try container.encode(rowCount, forKey: .rowCount)
