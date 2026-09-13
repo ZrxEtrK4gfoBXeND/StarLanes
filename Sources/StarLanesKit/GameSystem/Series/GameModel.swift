@@ -43,7 +43,9 @@ public struct GameModel: Codable {
     /// - parameter playerCount: Number of players (computers + humans) in the game.
     /// - parameter isComputer: Array correlating to player array to designate computer-controlled players.
     /// - parameter fixedCoordinateStack: Optionally provided by multi-device, multiplayer games; test suites; etc.
-    public init (gameConfig: GameConfig, houseRules: HouseRules, playerCount: Int, isComputer: [Bool], fixedCoordinateStack: [Coordinate]? = nil) {
+    /// - parameter closedCoordinates: Optional map regions held back from play until `open(coordinates:)`.
+    ///   Stars and black holes are still dealt across the whole map. Empty (the default) leaves the game unchanged.
+    public init (gameConfig: GameConfig, houseRules: HouseRules, playerCount: Int, isComputer: [Bool], fixedCoordinateStack: [Coordinate]? = nil, closedCoordinates: [Coordinate] = []) {
         let (columnCount, rowCount) = (gameConfig.mapColumnCount, gameConfig.mapRowCount)
         let allCoordinates = (0 ..< (columnCount * rowCount)).reduce([Coordinate]()) {
             let (row, column) = ($1 / columnCount, $1 % columnCount)
@@ -75,6 +77,28 @@ public struct GameModel: Codable {
 
         // Deal black hole tokens to galaxy map
         self.blackHoleCoordinates.forEach { self.galaxyMap[$0] = .blackHole }
+
+        // Hold back closed regions, including any already dealt into players' initial options.
+        if !closedCoordinates.isEmpty {
+            let closing = Set(closedCoordinates)
+            var returned = [Coordinate]()
+            for index in players.indices {
+                returned += players[index].coordinateOptions.filter { closing.contains($0) }
+                players[index].coordinateOptions = players[index].coordinateOptions.filter { !closing.contains($0) }
+            }
+            self.dealer.close(closedCoordinates, returning: returned)
+        }
+    }
+
+    /// Unplayed coordinates currently held back from play (see `init(closedCoordinates:)`).
+    public var closedCoordinates: [Coordinate] {
+        return dealer.closed
+    }
+
+    /// Opens closed coordinates: they are dealt next, in the order given. Coordinates that are not closed are ignored.
+    /// - parameter coordinates: Coordinates to release into play.
+    public mutating func open(coordinates: [Coordinate]) {
+        dealer.open(coordinates)
     }
 
     public func clone() -> GameModel {

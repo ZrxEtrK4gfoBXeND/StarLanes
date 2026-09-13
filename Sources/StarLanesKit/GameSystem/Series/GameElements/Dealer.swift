@@ -12,6 +12,10 @@ struct Dealer: Codable {
     /// This is the single source of unplayed coordinates in the game model.
     private var unplayedCoordinateStack = [Coordinate]()
 
+    /// Unplayed coordinates held back from dealing until opened (map regions). Optional feature:
+    /// nil when unused, so it is omitted from encoded games and existing save files keep their format.
+    private var closedCoordinates: [Coordinate]?
+
     /// Basic initializer.
     /// - parameter coordinateStack: Ordered (shuffled) array of coordinates.
     init(coordinateStack: [Coordinate]) {
@@ -36,6 +40,37 @@ struct Dealer: Codable {
     /// - parameter using: filter predicate is supplied by game model with logic to protect safe companies.
     mutating func filterCoordinates(using predicate: (Coordinate) -> Bool) {
         unplayedCoordinateStack = unplayedCoordinateStack.filter(predicate)
+    }
+
+    // MARK: Closed regions (optional feature)
+
+    /// Coordinates currently held back from dealing, in the order they were closed.
+    var closed: [Coordinate] {
+        return closedCoordinates ?? []
+    }
+
+    /// Holds back the given coordinates: any still in the unplayed stack are removed from it, and `returned`
+    /// (coordinates already dealt out but handed back, e.g. from players' initial options) are added too.
+    /// - parameter coordinates: Coordinates to close.
+    /// - parameter returned: Dealt coordinates to take back into the closed set.
+    mutating func close(_ coordinates: [Coordinate], returning returned: [Coordinate] = []) {
+        let closing = Set(coordinates)
+        let fromStack = unplayedCoordinateStack.filter { closing.contains($0) }
+        unplayedCoordinateStack = unplayedCoordinateStack.filter { !closing.contains($0) }
+        closedCoordinates = closed + fromStack + returned
+    }
+
+    /// Releases closed coordinates onto the top of the unplayed stack, so they are dealt next.
+    /// Coordinates are dealt in the order given; any that are not closed are ignored.
+    /// - parameter coordinates: Coordinates to open.
+    mutating func open(_ coordinates: [Coordinate]) {
+        let closedSet = Set(closed)
+        var seen = Set<Coordinate>()
+        let opening = coordinates.filter { closedSet.contains($0) && seen.insert($0).inserted }
+        let openingSet = Set(opening)
+        closedCoordinates = closed.filter { !openingSet.contains($0) }
+        // dealCoordinate() takes from the end, so push in reverse to deal in the given order.
+        unplayedCoordinateStack += opening.reversed()
     }
 
 }
