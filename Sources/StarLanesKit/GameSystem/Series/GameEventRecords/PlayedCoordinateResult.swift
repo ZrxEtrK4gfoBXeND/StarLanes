@@ -6,7 +6,7 @@
 //
 
 /// Used by the view model layer (Magister Ludi) to respond to the playing of a coordinate.
-enum PlayedCoordinateResult {
+public enum PlayedCoordinateResult {
     /// Outpost was created by playing a coordinate.
     case newOutpost
     /// Company was created by playing a coordinate.

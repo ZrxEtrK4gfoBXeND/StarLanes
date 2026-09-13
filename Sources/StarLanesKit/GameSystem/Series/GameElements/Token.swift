@@ -7,7 +7,7 @@
 import Foundation
 
 /// Token on the galaxy map
-enum Token: Equatable, Hashable {
+public enum Token: Equatable, Hashable {
     /// Star token
     case star
     /// Black Hole token
@@ -25,14 +25,14 @@ enum Token: Equatable, Hashable {
 extension Token {
     /// Extracts company id from self.
     /// - returns: Company ID or nil if token is not a company.
-    var companyID: Int? {
+    public var companyID: Int? {
         guard case let .company(companyID) = self else { return nil }
         return companyID
     }
 }
 
 extension Token: LosslessStringConvertible {
-    var description: String {
+    public var description: String {
         switch self {
         case .star: return "*"
         case .blackHole: return "@"
@@ -49,7 +49,7 @@ extension Token: LosslessStringConvertible {
         }
     }
 
-    init?(_ description: String) {
+    public init?(_ description: String) {
         if description.count != 1 {
             return nil
         }

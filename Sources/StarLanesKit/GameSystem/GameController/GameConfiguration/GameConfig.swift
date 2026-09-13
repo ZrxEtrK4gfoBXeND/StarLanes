@@ -10,25 +10,37 @@ import Foundation
 /// Game Configuration parameters. Invariant during series.
 public struct GameConfig: Codable, Equatable {
     /// Number of columns in Galaxy Map for each game in the series.
-    let mapColumnCount: Int
+    public let mapColumnCount: Int
     /// Number of rows in Galaxy Map for each game in the series.
-    let mapRowCount: Int
+    public let mapRowCount: Int
     /// Number of stars on the map for each game in the series.
-    let starCount: Int
+    public let starCount: Int
     /// Number of black holes on the map for each game in the series.
-    let blackHoleCount: Int
+    public let blackHoleCount: Int
     /// Number of shipping companies in the series.
-    let shippingCompanyCount: Int
+    public let shippingCompanyCount: Int
     /// Number of company tokens on the map to declare a company "safe" from being merged into another company.
-    let safeTokenCount: Int
+    public let safeTokenCount: Int
     /// Once a company has this many tokens on the map, the lead player can call the game.
-    let endGameTokenCount: Int
+    public let endGameTokenCount: Int
+
+    /// Explicit memberwise initializer, so it can be public.
+    public init(mapColumnCount: Int, mapRowCount: Int, starCount: Int, blackHoleCount: Int,
+                shippingCompanyCount: Int, safeTokenCount: Int, endGameTokenCount: Int) {
+        self.mapColumnCount = mapColumnCount
+        self.mapRowCount = mapRowCount
+        self.starCount = starCount
+        self.blackHoleCount = blackHoleCount
+        self.shippingCompanyCount = shippingCompanyCount
+        self.safeTokenCount = safeTokenCount
+        self.endGameTokenCount = endGameTokenCount
+    }
 }
 
 extension GameConfig {
 
     /// Basic game configuration.
-    static var basic: GameConfig {
+    public static var basic: GameConfig {
         return GameConfig(
                   mapColumnCount: 12,
                   mapRowCount: 9,
@@ -41,7 +53,7 @@ extension GameConfig {
     }
 
     /// Deluxe game configuration.
-    static var deluxe: GameConfig {
+    public static var deluxe: GameConfig {
         return GameConfig(
                    mapColumnCount: 16,
                    mapRowCount: 9,

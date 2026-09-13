@@ -10,29 +10,44 @@ import Foundation
 /// House rules values. Invariant during series.
 public struct HouseRules: Codable, Equatable {
     /// The cash each human player is given at the start of every game in the series.
-    let humanInitialCash: Int
+    public let humanInitialCash: Int
     /// The cash each computer player is given at the start of every game in the series.
-    let computerInitialCash: Int
+    public let computerInitialCash: Int
     /// Number of coordinates dealt to each player at the start of the game.
-    let playerCoordinateOptionCount: Int
+    public let playerCoordinateOptionCount: Int
     /// Number of shares given to the founder as a bonus when creating a company.
-    let founderShareBonus: Int
+    public let founderShareBonus: Int
     /// Value of adjacent star to share price. Stars are only calculated once for multiple adjacencies.
-    let shareValueAdjacentStar: Int
+    public let shareValueAdjacentStar: Int
     /// Value of adjacent token to share price.
-    let shareValueAdjacentToken: Int
+    public let shareValueAdjacentToken: Int
     /// Each round, each player gets paid a dividend. The dividend is calculated as: all shares * share values * dividend percent.
-    let dividendPercent: Int
+    public let dividendPercent: Int
     /// Upon merger, this many multiples of defunct company share value is split proportionaly amongst outstanding share holders
-    let mergeBonusShareValueMultiple: Int
+    public let mergeBonusShareValueMultiple: Int
     /// Determines whether the player order is random or fixed for every game in the series.
-    let isPlayerOrderRandom: Bool
+    public let isPlayerOrderRandom: Bool
+
+    /// Explicit memberwise initializer, so it can be public.
+    public init(humanInitialCash: Int, computerInitialCash: Int, playerCoordinateOptionCount: Int,
+                founderShareBonus: Int, shareValueAdjacentStar: Int, shareValueAdjacentToken: Int,
+                dividendPercent: Int, mergeBonusShareValueMultiple: Int, isPlayerOrderRandom: Bool) {
+        self.humanInitialCash = humanInitialCash
+        self.computerInitialCash = computerInitialCash
+        self.playerCoordinateOptionCount = playerCoordinateOptionCount
+        self.founderShareBonus = founderShareBonus
+        self.shareValueAdjacentStar = shareValueAdjacentStar
+        self.shareValueAdjacentToken = shareValueAdjacentToken
+        self.dividendPercent = dividendPercent
+        self.mergeBonusShareValueMultiple = mergeBonusShareValueMultiple
+        self.isPlayerOrderRandom = isPlayerOrderRandom
+    }
 }
 
 extension HouseRules {
 
     // Default house rules.
-    static var `default`:HouseRules {
+    public static var `default`:HouseRules {
         return HouseRules(
                 humanInitialCash: 6000,
                 computerInitialCash: 6000,
