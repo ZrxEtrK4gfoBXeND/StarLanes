@@ -8,13 +8,19 @@ import Foundation
 
 /// Coordinate location record.
 public struct Coordinate: Codable, Equatable, Hashable {
-    let row: Int
-    let column: Int
+    public let row: Int
+    public let column: Int
+
+    /// Explicit memberwise initializer, so it can be public.
+    public init(row: Int, column: Int) {
+        self.row = row
+        self.column = column
+    }
 }
 
 extension Coordinate {
     /// - returns: An array of adjacent coordinates. Illegal (off-map) coordinates are handled in the GalaxyMap coorinate getter/setter.
-    var adjacentCoordinates: [Coordinate] {
+    public var adjacentCoordinates: [Coordinate] {
         return [
             Coordinate(row: row-1, column: column),
             Coordinate(row: row+1, column: column),

@@ -6,13 +6,13 @@
 //
 
 /// A merge report model used in creating merger announcements. When more than two companies are merged at once, multiple merge reports are generated.
-struct MergeReport {
+public struct MergeReport {
     /// Player who triggered the merge.
-    let mergePlayerIndex: Int
+    public let mergePlayerIndex: Int
     /// Company that survived.
-    let survivingCompany: Company
+    public let survivingCompany: Company
     /// Company that is gone.
-    let defunctCompany: Company
+    public let defunctCompany: Company
     /// Array of bonuses paid used to inform players in announcement.
-    let bonusesPaid: [Int]
+    public let bonusesPaid: [Int]
 }

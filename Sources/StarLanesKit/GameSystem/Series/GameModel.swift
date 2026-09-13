@@ -8,7 +8,7 @@ import Foundation
 
 /// The master model data repository of the game.
 /// Each game in a series has its own game model.
-struct GameModel: Codable {
+public struct GameModel: Codable {
 
     // MARK: Game Configuration
 
@@ -21,17 +21,17 @@ struct GameModel: Codable {
 
     /// Internal record of the current player index, controlled by the Magister Ludi.
     /// This will not increment sequentially with randomized player order.
-    private(set) var currentPlayerIndex = 0
+    public private(set) var currentPlayerIndex = 0
     /// The galaxy map used in the game.
-    private(set) var galaxyMap: GalaxyMap
+    public private(set) var galaxyMap: GalaxyMap
     /// Coordinates of all black holes in the galaxy map.
     private var blackHoleCoordinates: [Coordinate]
     /// The player models used in the game.
     /// Note: these models don't have 'name' fields because they're not user-facing VMO's.
-    private(set) var players: [Player]
+    public private(set) var players: [Player]
     /// The company models used in the game. This holds all companies, active or not.
     /// Note: these models don't have 'name' fields because they're not user-facing VMO's.
-    private(set) var companies: [Company]
+    public private(set) var companies: [Company]
     /// The coordinate dealer for the game.
     private var dealer: Dealer
     /// Convenient set of all coordinates (order unimportant) used in functional comprehensions and providing default (shuffled) set to dealer.
@@ -43,7 +43,9 @@ struct GameModel: Codable {
     /// - parameter playerCount: Number of players (computers + humans) in the game.
     /// - parameter isComputer: Array correlating to player array to designate computer-controlled players.
     /// - parameter fixedCoordinateStack: Optionally provided by multi-device, multiplayer games; test suites; etc.
-    init (gameConfig: GameConfig, houseRules: HouseRules, playerCount: Int, isComputer: [Bool], fixedCoordinateStack: [Coordinate]? = nil) {
+    /// - parameter closedCoordinates: Optional map regions held back from play until `open(coordinates:)`.
+    ///   Stars and black holes are still dealt across the whole map. Empty (the default) leaves the game unchanged.
+    public init (gameConfig: GameConfig, houseRules: HouseRules, playerCount: Int, isComputer: [Bool], fixedCoordinateStack: [Coordinate]? = nil, closedCoordinates: [Coordinate] = []) {
         let (columnCount, rowCount) = (gameConfig.mapColumnCount, gameConfig.mapRowCount)
         let allCoordinates = (0 ..< (columnCount * rowCount)).reduce([Coordinate]()) {
             let (row, column) = ($1 / columnCount, $1 % columnCount)
@@ -75,26 +77,48 @@ struct GameModel: Codable {
 
         // Deal black hole tokens to galaxy map
         self.blackHoleCoordinates.forEach { self.galaxyMap[$0] = .blackHole }
+
+        // Hold back closed regions, including any already dealt into players' initial options.
+        if !closedCoordinates.isEmpty {
+            let closing = Set(closedCoordinates)
+            var returned = [Coordinate]()
+            for index in players.indices {
+                returned += players[index].coordinateOptions.filter { closing.contains($0) }
+                players[index].coordinateOptions = players[index].coordinateOptions.filter { !closing.contains($0) }
+            }
+            self.dealer.close(closedCoordinates, returning: returned)
+        }
     }
 
-    func clone() -> GameModel {
+    /// Unplayed coordinates currently held back from play (see `init(closedCoordinates:)`).
+    public var closedCoordinates: [Coordinate] {
+        return dealer.closed
+    }
+
+    /// Opens closed coordinates: they are dealt next, in the order given. Coordinates that are not closed are ignored.
+    /// - parameter coordinates: Coordinates to release into play.
+    public mutating func open(coordinates: [Coordinate]) {
+        dealer.open(coordinates)
+    }
+
+    public func clone() -> GameModel {
         var result = self
         result.galaxyMap = result.galaxyMap.clone()
         return result
     }
 
     /// Return alphabetized list of active companies.
-    var activeCompanies: [Company] {
+    public var activeCompanies: [Company] {
         return companies.filter { $0.isActive }
     }
 
     /// Return array of player net worths. Array elements correspond to player model array.
-    var netWorths: [Int] {
+    public var netWorths: [Int] {
         return players.map { player in companies.indices.reduce(player.cash) { $0 + player.shares[companies[$1].index] * companies[$1].shareValue }}
     }
 
     /// Magister Ludi controls current player and notifies game model when value changes.
-    mutating func select(playerIndex: Int) {
+    public mutating func select(playerIndex: Int) {
         currentPlayerIndex = playerIndex
     }
 
@@ -110,7 +134,7 @@ struct GameModel: Codable {
 
     /// Provides Magister Ludi with current player's coordinate options.
     /// - returns: possible empty array of playable coordinate options for the current player.
-    mutating func playerCoordinateOptions() -> [Coordinate] {
+    public mutating func playerCoordinateOptions() -> [Coordinate] {
 
         func isPlayable(coordinate: Coordinate) -> Bool {
             let adjacentCompanyIDs = Array(Set(coordinate.adjacentCoordinates.compactMap { galaxyMap[$0]?.companyID }))
@@ -129,7 +153,7 @@ struct GameModel: Codable {
     /// - parameter coordinate: Coordinate to play.
     /// - returns: `PlayedCoordinateResult` value that describes the result of playing the coordinate.
     /// - seealso: `PlayedCoordinateResult` enum.
-    mutating func play(coordinate: Coordinate) -> [PlayedCoordinateResult] {
+    public mutating func play(coordinate: Coordinate) -> [PlayedCoordinateResult] {
 
         var mergeReports = [MergeReport]()
         var companiesDestroyedByBlackHole = [Int]()
@@ -287,7 +311,7 @@ struct GameModel: Codable {
 
     /// Calculates the dividends for the current player and updates player's cash record.
     /// - returns: dividend ammount in dollars
-    mutating func calculateDividends() -> Int {
+    public mutating func calculateDividends() -> Int {
         let dividends = companies.indices.reduce(0) { $0 +  players[currentPlayerIndex].shares[$1] * companies[$1].shareValue } * houseRules.dividendPercent / 100
         players[currentPlayerIndex].cash += dividends
         return dividends
@@ -296,7 +320,7 @@ struct GameModel: Codable {
     /// Fulfills a share purchase order for the current player. Share ammounts are updated and players cash is spent.
     /// Note: assumes caller has protected against player's cash amount going negative.
     /// - parameter purchaseOrder: Array of shares to purchase, whose elements correlate to array of active company models.
-    mutating func purchaseShares(purchaseOrder: [Int]) {
+    public mutating func purchaseShares(purchaseOrder: [Int]) {
         for activeCompanyIndex in activeCompanies.indices {
             players[currentPlayerIndex].cash -= purchaseOrder[activeCompanyIndex] * activeCompanies[activeCompanyIndex].shareValue
             players[currentPlayerIndex].shares[activeCompanies[activeCompanyIndex].index] += purchaseOrder[activeCompanyIndex]
@@ -306,7 +330,7 @@ struct GameModel: Codable {
 
     /// Checks whether there are any playable tiles left. If this is not the case, the game cannot continue and Magister Ludi will call the game.
     /// - returns: true if at least one playable tile is found amonst the player's coordinate options.
-    mutating func hasPlayableTiles() -> Bool {
+    public mutating func hasPlayableTiles() -> Bool {
         return players.map { $0.coordinateOptions.count }.reduce(0, +) > 0
     }
 }
