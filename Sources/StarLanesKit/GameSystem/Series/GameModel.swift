@@ -328,6 +328,18 @@ public struct GameModel: Codable {
         }
     }
 
+    /// Fulfils a share sale for the current player at the current share value. Mirror of `purchaseShares`:
+    /// elements correlate to `activeCompanies`. Share values do not move. Opt-in: the console game never calls it.
+    /// Note: assumes the caller has checked the player holds at least the shares sold.
+    public mutating func sellShares(saleOrder: [Int]) {
+        for activeCompanyIndex in activeCompanies.indices {
+            let company = activeCompanies[activeCompanyIndex]
+            players[currentPlayerIndex].cash += saleOrder[activeCompanyIndex] * company.shareValue
+            players[currentPlayerIndex].shares[company.index] -= saleOrder[activeCompanyIndex]
+            companies[company.index].outstandingShares -= saleOrder[activeCompanyIndex]
+        }
+    }
+
     /// Checks whether there are any playable tiles left. If this is not the case, the game cannot continue and Magister Ludi will call the game.
     /// - returns: true if at least one playable tile is found amonst the player's coordinate options.
     public mutating func hasPlayableTiles() -> Bool {
